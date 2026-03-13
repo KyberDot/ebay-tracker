@@ -9,6 +9,7 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [connecting, setConnecting] = useState(false)
+  const [demoLoading, setDemoLoading] = useState(false)
 
   useEffect(() => {
     if (user) navigate('/', { replace: true })
@@ -23,7 +24,7 @@ export default function LoginPage() {
       navigate('/', { replace: true })
     }
     if (error) {
-      toast(`Auth failed: ${error}`, 'error')
+      toast('Auth failed: ' + error, 'error')
     }
   }, [searchParams])
 
@@ -39,14 +40,18 @@ export default function LoginPage() {
 
   const handleDemo = async () => {
     try {
-      setConnecting(true)
+      setDemoLoading(true)
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001'
-      await fetch(apiUrl + '/api/auth/demo', { method: 'POST', credentials: 'include' })
+      const res = await fetch(apiUrl + '/api/auth/demo', {
+        method: 'POST',
+        credentials: 'include',
+      })
+      if (!res.ok) throw new Error('failed')
       await checkAuth()
       navigate('/', { replace: true })
     } catch (err) {
-      toast('Demo login failed', 'error')
-      setConnecting(false)
+      toast('Demo login failed - is the backend running?', 'error')
+      setDemoLoading(false)
     }
   }
 
@@ -61,18 +66,13 @@ export default function LoginPage() {
       position: 'relative',
       overflow: 'hidden',
     }}>
-      {/* Background grid */}
       <div style={{
         position: 'absolute', inset: 0,
-        backgroundImage: `
-          linear-gradient(var(--border) 1px, transparent 1px),
-          linear-gradient(90deg, var(--border) 1px, transparent 1px)
-        `,
+        backgroundImage: 'linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)',
         backgroundSize: '60px 60px',
         opacity: 0.3,
       }} />
 
-      {/* Glow */}
       <div style={{
         position: 'absolute',
         top: '30%', left: '50%',
@@ -92,7 +92,6 @@ export default function LoginPage() {
         position: 'relative',
         zIndex: 1,
       }}>
-        {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
           <div style={{
             width: 64, height: 64,
@@ -105,18 +104,14 @@ export default function LoginPage() {
             marginBottom: 16,
             boxShadow: '0 8px 32px var(--accent-glow)',
           }}>📦</div>
-          <h1 style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 22,
-            fontWeight: 700,
-            marginBottom: 6,
-          }}>eBay Tracker</h1>
+          <h1 style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, marginBottom: 6 }}>
+            eBay Tracker
+          </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
             Track your sales, orders &amp; inventory in one place
           </p>
         </div>
 
-        {/* Features */}
         <div style={{
           background: 'var(--bg-card2)',
           border: '1px solid var(--border)',
@@ -151,26 +146,39 @@ export default function LoginPage() {
             color: 'var(--red)',
             lineHeight: 1.6,
           }}>
-            ⚠️ <strong>eBay API not configured.</strong> Set <code>EBAY_CLIENT_ID</code> and <code>EBAY_CLIENT_SECRET</code> in your environment variables.
+            ⚠️ <strong>eBay API not configured.</strong> Set EBAY_CLIENT_ID and EBAY_CLIENT_SECRET in environment variables.
           </div>
         )}
 
         <button
           className="btn btn-primary btn-lg"
           onClick={handleConnect}
-          disabled={connecting || !config.ebayConfigured}
+          disabled={connecting || demoLoading || !config.ebayConfigured}
           style={{ width: '100%', justifyContent: 'center', fontSize: 14 }}
         >
           {connecting ? (
-            <>
-              <span className="spinner" style={{ width: 16, height: 16 }} />
-              Connecting…
-            </>
+            <><span className="spinner" style={{ width: 16, height: 16 }} />Connecting…</>
           ) : (
-            <>
-              <span style={{ fontSize: 18 }}>🔑</span>
-              Sign in with eBay
-            </>
+            <><span style={{ fontSize: 18 }}>🔑</span>Sign in with eBay</>
+          )}
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0' }}>
+          <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>OR</span>
+          <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+        </div>
+
+        <button
+          className="btn btn-secondary btn-lg"
+          onClick={handleDemo}
+          disabled={connecting || demoLoading}
+          style={{ width: '100%', justifyContent: 'center', fontSize: 14 }}
+        >
+          {demoLoading ? (
+            <><span className="spinner" style={{ width: 16, height: 16 }} />Loading demo…</>
+          ) : (
+            <><span style={{ fontSize: 18 }}>👀</span>Preview with demo data</>
           )}
         </button>
 
@@ -182,7 +190,7 @@ export default function LoginPage() {
           lineHeight: 1.6,
         }}>
           You'll be redirected to eBay to authorise access.<br />
-          We only read your sales & inventory data.
+          We only read your sales &amp; inventory data.
         </p>
       </div>
     </div>
