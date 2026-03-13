@@ -9,7 +9,7 @@ A self-hosted platform to track your eBay sales, orders, and inventory in real-t
 - **Orders** — Grouped order view with line items, tracking numbers, buyer details
 - **Inventory** — Track listings with cost price, profit margin, 30-day velocity, notes & tags
 - **Auto-Sync** — Pull directly from eBay API (orders, inventory, fulfillment data)
-
+-
 ---
 
 ## 🚀 Quick Start with Docker
