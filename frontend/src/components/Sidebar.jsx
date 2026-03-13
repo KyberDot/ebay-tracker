@@ -77,6 +77,23 @@ export default function Sidebar() {
         ))}
       </nav>
 
+      {/* Demo banner */}
+      {user?.username === 'demo_seller_uk' && (
+        <div style={{
+          margin: '0 10px 8px',
+          background: 'rgba(230,168,23,0.08)',
+          border: '1px solid rgba(230,168,23,0.25)',
+          borderRadius: 8,
+          padding: '7px 10px',
+          fontSize: 11,
+          color: 'var(--accent)',
+          textAlign: 'center',
+          fontFamily: 'var(--font-mono)',
+        }}>
+          👀 DEMO MODE
+        </div>
+      )}
+
       {/* User */}
       <div style={{
         padding: '14px 14px',

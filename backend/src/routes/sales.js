@@ -8,8 +8,12 @@ const router = express.Router();
 function requireAuth(req, res, next) {
   if (!req.session.userId) return res.status(401).json({ error: 'Not authenticated' });
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId);
-  if (!user || !user.access_token) return res.status(401).json({ error: 'eBay not connected' });
+  if (!user) return res.status(401).json({ error: 'User not found' });
+  // Allow demo users (they have a demo-token but no real eBay connection)
+  const isDemo = user.id === 'demo-user-00000000-0000-0000-0000-000000000001';
+  if (!isDemo && !user.access_token) return res.status(401).json({ error: 'eBay not connected' });
   req.user = user;
+  req.isDemo = isDemo;
   next();
 }
 
@@ -89,6 +93,7 @@ router.get('/summary', requireAuth, (req, res) => {
 
 // Sync orders from eBay
 router.post('/sync', requireAuth, async (req, res) => {
+  if (req.isDemo) return res.json({ success: true, synced: 0, message: 'Demo mode - sync disabled' });
   const syncId = uuidv4();
 
   try {
@@ -192,3 +197,27 @@ router.post('/sync', requireAuth, async (req, res) => {
 });
 
 module.exports = router;
+
+// CSV export
+router.get('/export/csv', requireAuth, (req, res) => {
+  const { from, to } = req.query;
+  let query = 'SELECT * FROM sales WHERE user_id = ?';
+  const params = [req.user.id];
+  if (from) { query += ' AND sale_date >= ?'; params.push(parseInt(from)); }
+  if (to) { query += ' AND sale_date <= ?'; params.push(parseInt(to)); }
+  query += ' ORDER BY sale_date DESC';
+
+  const sales = db.prepare(query).all(...params);
+
+  const headers = ['order_id','item_id','item_title','sku','custom_label','quantity','sale_price','total_price','currency','ebay_fees','postage_cost','net_profit','buyer_username','buyer_country','sale_date','payment_status','shipping_status','tracking_number'];
+  const rows = sales.map(s =>
+    headers.map(h => {
+      const v = h === 'sale_date' ? new Date(s[h]).toISOString() : (s[h] ?? '');
+      return `"${String(v).replace(/"/g, '""')}"`
+    }).join(',')
+  );
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="ebay-sales-${Date.now()}.csv"`);
+  res.send([headers.join(','), ...rows].join('\n'));
+});

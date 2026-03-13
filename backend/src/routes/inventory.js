@@ -8,8 +8,12 @@ const router = express.Router();
 function requireAuth(req, res, next) {
   if (!req.session.userId) return res.status(401).json({ error: 'Not authenticated' });
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId);
-  if (!user || !user.access_token) return res.status(401).json({ error: 'eBay not connected' });
+  if (!user) return res.status(401).json({ error: 'User not found' });
+  // Allow demo users (they have a demo-token but no real eBay connection)
+  const isDemo = user.id === 'demo-user-00000000-0000-0000-0000-000000000001';
+  if (!isDemo && !user.access_token) return res.status(401).json({ error: 'eBay not connected' });
   req.user = user;
+  req.isDemo = isDemo;
   next();
 }
 
@@ -127,6 +131,7 @@ router.delete('/:id', requireAuth, (req, res) => {
 
 // Sync inventory from eBay
 router.post('/sync', requireAuth, async (req, res) => {
+  if (req.isDemo) return res.json({ success: true, synced: 0, message: 'Demo mode - sync disabled' });
   try {
     const token = await ebay.getValidToken(req.user, db);
 

@@ -37,6 +37,19 @@ export default function LoginPage() {
     }
   }
 
+  const handleDemo = async () => {
+    try {
+      setConnecting(true)
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+      await fetch(apiUrl + '/api/auth/demo', { method: 'POST', credentials: 'include' })
+      await checkAuth()
+      navigate('/', { replace: true })
+    } catch (err) {
+      toast('Demo login failed', 'error')
+      setConnecting(false)
+    }
+  }
+
   return (
     <div style={{
       minHeight: '100vh',
